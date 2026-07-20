@@ -1,0 +1,16 @@
+{
+  "name": "System Routine Tracker",
+  "short_name": "Routines",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF0F5",
+  "theme_color": "#C74B5B",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/814/814513.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+
