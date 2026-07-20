@@ -1,81 +1,85 @@
 import { useState, useEffect } from 'react';
 import SettingsModal from './SettingsModal';
 
-// Starting colors set to pink, blue, and clean white accents
 const defaultData = [
   {
     id: '1',
     name: 'Default',
-    theme: { bg: '#FFF0F5', primary: '#C74B5B', columnBg: '#FFFFFF', isImage: false },
-    routines: {
-      morning: [{ id: 'm1', text: 'Wake up safely & stretch', done: false }, { id: 'm2', text: 'Skincare routine', done: false }],
-      afternoon: [{ id: 'a1', text: 'Check water propagations', done: false }, { id: 'a2', text: 'Lunch', done: false }],
-      evening: [{ id: 'e1', text: 'Wind down', done: false }]
-    },
-    todos: [{ id: 't1', text: 'Update repository', done: false }]
-  },
-  {
-    id: '2',
-    name: 'Tomboy Config',
-    theme: { bg: '#E6F2FF', primary: '#4A90E2', columnBg: '#FFFFFF', isImage: false },
-    routines: {
-      morning: [{ id: 'm1', text: 'Get dressed', done: false }],
-      afternoon: [{ id: 'a1', text: 'Feed Sammie', done: false }],
-      evening: [{ id: 'e1', text: 'Check GitHub', done: false }]
-    },
+    theme: { bg: '#FFF0F5', primary: '#C74B5B', columnBg: '#FFFFFF', isImage: false, font: 'monospace', radius: '16px' },
+    routines: { morning: [], afternoon: [], evening: [] },
     todos: []
   }
 ];
 
 export default function App() {
-  const [alters, setAlters] = useState(() => {
-    const saved = localStorage.getItem('system_routines');
-    return saved ? JSON.parse(saved) : defaultData;
-  });
+  const [alters, setAlters] = useState(defaultData);
   const [activeId, setActiveId] = useState('1');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // Sync to local state instantly, preparing placeholder hooks for Vercel KV endpoints
   useEffect(() => {
-    localStorage.setItem('system_routines', JSON.stringify(alters));
-    // When Vercel KV is activated, a simple fetch('/api/save', {method: 'POST', body: ...}) goes here
-  }, [alters]);
+    const loadData = async () => {
+      try {
+        const res = await fetch('/api/data');
+        const cloudData = await res.json();
+        if (cloudData && cloudData.length > 0) {
+          setAlters(cloudData);
+        } else {
+          const local = localStorage.getItem('system_routines');
+          if (local) setAlters(JSON.parse(local));
+        }
+      } catch (err) {
+        const local = localStorage.getItem('system_routines');
+        if (local) setAlters(JSON.parse(local));
+      }
+      setIsLoaded(true);
+    };
+    loadData();
+  }, []);
 
-  const activeFronter = alters.find(a => a.id === activeId) || alters[0] || defaultData[0];
-  const theme = activeFronter.theme;
+  useEffect(() => {
+    if (!isLoaded) return;
+    localStorage.setItem('system_routines', JSON.stringify(alters));
+    fetch('/api/data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(alters)
+    }).catch(console.error);
+  }, [alters, isLoaded]);
+
+  const activeFronter = alters.find(a => a.id === activeId) || alters[0];
+  const theme = activeFronter?.theme || defaultData[0].theme;
 
   const toggleTask = (period, taskId) => {
-    setAlters(alters.map(alter => {
-      if (alter.id !== activeId) return alter;
-      const updated = alter.routines[period].map(t => t.id === taskId ? { ...t, done: !t.done } : t);
-      return { ...alter, routines: { ...alter.routines, [period]: updated } };
+    setAlters(alters.map(a => a.id !== activeId ? a : { 
+      ...a, routines: { ...a.routines, [period]: a.routines[period].map(t => t.id === taskId ? { ...t, done: !t.done } : t) }
     }));
   };
 
   const toggleTodo = (taskId) => {
-    setAlters(alters.map(alter => {
-      if (alter.id !== activeId) return alter;
-      const updated = alter.todos.map(t => t.id === taskId ? { ...t, done: !t.done } : t);
-      return { ...alter, todos: updated };
+    setAlters(alters.map(a => a.id !== activeId ? a : {
+      ...a, todos: a.todos.map(t => t.id === taskId ? { ...t, done: !t.done } : t)
     }));
   };
 
   const addAdHocTodo = (text) => {
     if (!text.trim()) return;
-    setAlters(alters.map(alter => {
-      if (alter.id !== activeId) return alter;
-      return { ...alter, todos: [...alter.todos, { id: 't_' + Date.now(), text, done: false }] };
+    setAlters(alters.map(a => a.id !== activeId ? a : {
+      ...a, todos: [...a.todos, { id: 't_' + Date.now(), text, done: false }]
     }));
   };
+
+  if (!isLoaded) return <div style={{ padding: '20px' }}>Loading system data...</div>;
 
   return (
     <div className="app-container" style={{ 
       backgroundColor: theme.isImage ? 'transparent' : theme.bg, 
       backgroundImage: theme.isImage ? `url(${theme.bg})` : 'none',
       color: theme.primary, 
+      '--app-font': theme.font || 'monospace',
+      '--app-radius': theme.radius || '16px',
       minHeight: '100vh' 
     }}>
-      
       <header style={{ borderColor: theme.primary }}>
         <div className="header-left">
           <label>Fronter: </label>
@@ -104,7 +108,7 @@ export default function App() {
       </div>
 
       <div className="todo-section" style={{ borderColor: theme.primary, backgroundColor: theme.columnBg }}>
-        <h2 style={{ backgroundColor: theme.primary }}>AD-HOC CHECKLIST</h2>
+        <h2 style={{ backgroundColor: theme.primary }}>To Do:</h2>
         <div className="task-list">
           {activeFronter.todos?.map(task => (
              <label key={task.id} className="task-item">
@@ -113,31 +117,14 @@ export default function App() {
              </label>
           ))}
           <div className="add-todo-row">
-            <input 
-              type="text" 
-              placeholder="Add temporary task..." 
-              style={{ borderColor: theme.primary }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  addAdHocTodo(e.target.value);
-                  e.target.value = '';
-                }
-              }}
-            />
+            <input type="text" placeholder="Add temporary task..." style={{ borderColor: theme.primary }} onKeyDown={(e) => {
+                if (e.key === 'Enter') { addAdHocTodo(e.target.value); e.target.value = ''; }
+              }} />
           </div>
         </div>
       </div>
 
-      {isSettingsOpen && (
-        <SettingsModal 
-          alters={alters} 
-          setAlters={setAlters} 
-          activeId={activeId}
-          setActiveId={setActiveId}
-          close={() => setIsSettingsOpen(false)} 
-        />
-      )}
+      {isSettingsOpen && <SettingsModal alters={alters} setAlters={setAlters} activeId={activeId} setActiveId={setActiveId} close={() => setIsSettingsOpen(false)} />}
     </div>
   );
 }
-
