@@ -282,3 +282,147 @@ select, input[type="text"] {
 .cancel-btn { background: #e0e0e0; color: #333; }
 .save-btn { background: #4A90E2; color: white; }
 
+/* New Home Controls & Reset Button */
+.home-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.reset-btn {
+  background: transparent;
+  border: 2px solid;
+  padding: 10px 20px;
+  border-radius: calc(var(--app-radius) / 2);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: bold;
+}
+
+/* Tracking Section Styles */
+.tracking-section {
+  border: 2px solid;
+  border-radius: var(--app-radius, 16px);
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.tracking-section h2 {
+  color: white;
+  text-align: center;
+  padding: 12px;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+}
+
+.tracking-block {
+  padding: 15px;
+  border-bottom: 1px dashed #ccc;
+}
+.tracking-block:last-child {
+  border-bottom: none;
+}
+
+.tracking-block h3 {
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+.water-display {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+  min-height: 35px;
+  letter-spacing: 2px;
+}
+
+.empty-water {
+  font-size: 0.9rem;
+  color: #999;
+  font-style: italic;
+}
+
+.water-btn {
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: calc(var(--app-radius) / 2);
+  cursor: pointer;
+  font-weight: bold;
+  font-family: inherit;
+}
+
+textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px;
+  border: 2px solid;
+  border-radius: calc(var(--app-radius) / 2);
+  font-family: inherit;
+  resize: vertical;
+}
+
+/* Bottom Navigation Bar */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  border-top: 3px dashed;
+  backdrop-filter: blur(5px);
+  z-index: 100;
+}
+
+.bottom-nav button {
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 10px 20px;
+  font-family: inherit;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.bottom-nav button.active-tab {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* Monday Trend Modal */
+.trend-modal {
+  background: white;
+  padding: 30px;
+  border-radius: var(--app-radius, 14px);
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  border: 3px solid;
+  position: relative;
+}
+
+.close-trend {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.trend-modal p {
+  margin-top: 15px;
+  line-height: 1.5;
+}
+
+.trend-cute {
+  font-weight: bold;
+  margin-top: 20px !important;
+}
+
