@@ -3,8 +3,6 @@ import { useState } from 'react';
 export default function SettingsModal({ alters, setAlters, activeId, setActiveId, close }) {
   const [editingId, setEditingId] = useState(activeId);
   const [localAlters, setLocalAlters] = useState(alters);
-
-  // Form states for temporary additions
   const [newAlterName, setNewAlterName] = useState('');
   const [newTaskText, setNewTaskText] = useState('');
   const [taskPeriod, setTaskPeriod] = useState('morning');
@@ -12,31 +10,23 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
   const activeEdit = localAlters.find(a => a.id === editingId) || localAlters[0];
 
   const handleThemeChange = (field, value) => {
-    setLocalAlters(localAlters.map(a => 
-      a.id === editingId ? { ...a, theme: { ...a.theme, [field]: value } } : a
-    ));
+    setLocalAlters(localAlters.map(a => a.id === editingId ? { ...a, theme: { ...a.theme, [field]: value } } : a));
   };
 
   const handleAddNewAlter = () => {
     if (!newAlterName.trim()) return;
-    const newId = 'alter_' + Date.now();
     const newAlter = {
-      id: newId,
-      name: newAlterName,
-      theme: { bg: '#FFFFFF', primary: '#333333', columnBg: '#FFFFFF', isImage: false },
-      routines: { morning: [], afternoon: [], evening: [] },
-      todos: []
+      id: 'alter_' + Date.now(), name: newAlterName,
+      theme: { bg: '#FFFFFF', primary: '#333333', columnBg: '#FFFFFF', isImage: false, font: 'monospace', radius: '16px' },
+      routines: { morning: [], afternoon: [], evening: [] }, todos: []
     };
     setLocalAlters([...localAlters, newAlter]);
-    setEditingId(newId);
+    setEditingId(newAlter.id);
     setNewAlterName('');
   };
 
   const handleDeleteAlter = (idToDelete) => {
-    if (localAlters.length <= 1) {
-      alert("You must keep at least one profile configuration!");
-      return;
-    }
+    if (localAlters.length <= 1) return alert("You must keep at least one profile!");
     const filtered = localAlters.filter(a => a.id !== idToDelete);
     setLocalAlters(filtered);
     setEditingId(filtered[0].id);
@@ -44,27 +34,31 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
 
   const handleAddTask = () => {
     if (!newTaskText.trim()) return;
-    setLocalAlters(localAlters.map(a => {
-      if (a.id !== editingId) return a;
-      const updatedPeriod = [...a.routines[taskPeriod], { id: 'r_' + Date.now(), text: newTaskText, done: false }];
-      return { ...a, routines: { ...a.routines, [taskPeriod]: updatedPeriod } };
+    setLocalAlters(localAlters.map(a => a.id !== editingId ? a : {
+      ...a, routines: { ...a.routines, [taskPeriod]: [...a.routines[taskPeriod], { id: 'r_' + Date.now(), text: newTaskText, done: false }] }
     }));
     setNewTaskText('');
   };
 
   const handleDeleteTask = (period, taskId) => {
-    setLocalAlters(localAlters.map(a => {
-      if (a.id !== editingId) return a;
-      const filteredPeriod = a.routines[period].filter(t => t.id !== taskId);
-      return { ...a, routines: { ...a.routines, [period]: filteredPeriod } };
+    setLocalAlters(localAlters.map(a => a.id !== editingId ? a : {
+      ...a, routines: { ...a.routines, [period]: a.routines[period].filter(t => t.id !== taskId) }
     }));
+  };
+
+  const handleDownloadBackup = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(alters));
+    const dlNode = document.createElement('a');
+    dlNode.setAttribute("href", dataStr);
+    dlNode.setAttribute("download", "system_backup.json");
+    document.body.appendChild(dlNode);
+    dlNode.click();
+    dlNode.remove();
   };
 
   const handleSave = () => {
     setAlters(localAlters);
-    if (!localAlters.some(a => a.id === activeId)) {
-      setActiveId(localAlters[0].id);
-    }
+    if (!localAlters.some(a => a.id === activeId)) setActiveId(localAlters[0].id);
     close();
   };
 
@@ -73,7 +67,6 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
       <div className="modal-content">
         <h2 className="modal-title">System Customizer</h2>
         
-        {/* Profile Selection & Deletion */}
         <div className="settings-group">
           <label>Manage Existing Profiles:</label>
           <div className="row-layout">
@@ -84,7 +77,6 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
           </div>
         </div>
 
-        {/* Profile Creation */}
         <div className="settings-group inline-box">
           <label>Create New Profile:</label>
           <div className="row-layout">
@@ -96,16 +88,36 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
         {activeEdit && (
           <div className="scroll-container">
             <h3>Theme & Design Styling</h3>
-            <div className="settings-group checkbox-row">
+            
+            <div className="settings-group row-layout" style={{ marginTop: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <label>Font Style:</label>
+                <select value={activeEdit.theme.font || 'monospace'} onChange={(e) => handleThemeChange('font', e.target.value)} style={{ width: '100%' }}>
+                  <option value="monospace">Retro (Monospace)</option>
+                  <option value="sans-serif">Clean (Sans-Serif)</option>
+                  <option value="serif">Classic (Serif)</option>
+                  <option value="'Comic Sans MS', cursive, sans-serif">Bubbly (Cursive)</option>
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label>Box Shape:</label>
+                <select value={activeEdit.theme.radius || '16px'} onChange={(e) => handleThemeChange('radius', e.target.value)} style={{ width: '100%' }}>
+                  <option value="16px">Bubble (Rounded)</option>
+                  <option value="0px">Square</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="settings-group checkbox-row" style={{ marginTop: '10px' }}>
               <label>
                 <input type="checkbox" checked={activeEdit.theme.isImage} onChange={(e) => handleThemeChange('isImage', e.target.checked)} />
-                Use Background Image URL instead of Hex Code
+                Use Background Image URL
               </label>
             </div>
 
             <div className="settings-group">
-              <label>{activeEdit.theme.isImage ? 'Background Image Web Link:' : 'Background Hex Color:'}</label>
-              <input type="text" value={activeEdit.theme.bg} onChange={(e) => handleThemeChange('bg', e.target.value)} placeholder={activeEdit.theme.isImage ? 'https://...' : '#FFF0F5'} />
+              <label>{activeEdit.theme.isImage ? 'Background Image Link:' : 'Background Hex Color:'}</label>
+              <input type="text" value={activeEdit.theme.bg} onChange={(e) => handleThemeChange('bg', e.target.value)} />
             </div>
             
             <div className="settings-group">
@@ -126,15 +138,14 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
                   <option value="afternoon">Afternoon</option>
                   <option value="evening">Evening</option>
                 </select>
-                <input type="text" placeholder="New core task item..." value={newTaskText} onChange={(e) => setNewTaskText(e.target.value)} />
-                <button className="action-btn" onClick={handleAddTask}>Add Task</button>
+                <input type="text" placeholder="New task..." value={newTaskText} onChange={(e) => setNewTaskText(e.target.value)} />
+                <button className="action-btn" onClick={handleAddTask}>Add</button>
               </div>
             </div>
 
             {['morning', 'afternoon', 'evening'].map(period => (
               <div key={period} className="mini-task-list">
-                <h4>{period.toUpperCase()} Items:</h4>
-                {activeEdit.routines[period]?.length === 0 && <p className="empty-text">No routine tasks recorded.</p>}
+                <h4>{period.toUpperCase()}:</h4>
                 {activeEdit.routines[period]?.map(t => (
                   <div key={t.id} className="mini-task-item">
                     <span>• {t.text}</span>
@@ -146,11 +157,15 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
           </div>
         )}
 
-        <div className="modal-actions">
-          <button className="cancel-btn" onClick={close}>Cancel</button>
-          <button className="save-btn" onClick={handleSave}>Save Config</button>
+        <div className="modal-actions" style={{ justifyContent: 'space-between' }}>
+          <button className="cancel-btn" onClick={handleDownloadBackup}>Download Backup JSON</button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="cancel-btn" onClick={close}>Cancel</button>
+            <button className="save-btn" onClick={handleSave}>Save Config</button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
