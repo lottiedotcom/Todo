@@ -18,7 +18,8 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
     const newAlter = {
       id: 'alter_' + Date.now(), name: newAlterName,
       theme: { bg: '#FFFFFF', primary: '#333333', columnBg: '#FFFFFF', isImage: false, font: 'monospace', radius: '16px' },
-      routines: { morning: [], afternoon: [], evening: [] }, todos: []
+      routines: { morning: [], afternoon: [], evening: [] }, todos: [],
+      tracking: {} 
     };
     setLocalAlters([...localAlters, newAlter]);
     setEditingId(newAlter.id);
@@ -44,16 +45,6 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
     setLocalAlters(localAlters.map(a => a.id !== editingId ? a : {
       ...a, routines: { ...a.routines, [period]: a.routines[period].filter(t => t.id !== taskId) }
     }));
-  };
-
-  const handleDownloadBackup = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(alters));
-    const dlNode = document.createElement('a');
-    dlNode.setAttribute("href", dataStr);
-    dlNode.setAttribute("download", "system_backup.json");
-    document.body.appendChild(dlNode);
-    dlNode.click();
-    dlNode.remove();
   };
 
   const handleSave = () => {
@@ -157,8 +148,7 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
           </div>
         )}
 
-        <div className="modal-actions" style={{ justifyContent: 'space-between' }}>
-          <button className="cancel-btn" onClick={handleDownloadBackup}>Download Backup JSON</button>
+        <div className="modal-actions" style={{ justifyContent: 'flex-end' }}>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button className="cancel-btn" onClick={close}>Cancel</button>
             <button className="save-btn" onClick={handleSave}>Save Config</button>
@@ -168,4 +158,3 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
     </div>
   );
 }
-
