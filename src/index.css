@@ -2,7 +2,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: monospace;
+  font-family: var(--app-font, monospace);
 }
 
 body {
@@ -24,7 +24,7 @@ header {
   padding: 15px;
   margin-bottom: 20px;
   background: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
+  border-radius: var(--app-radius, 12px);
   text-align: center;
 }
 
@@ -53,14 +53,14 @@ select, input[type="text"] {
   font-weight: bold;
   background: white;
   border: 2px solid;
-  border-radius: 6px;
+  border-radius: calc(var(--app-radius) / 2);
 }
 
 .settings-btn {
   color: white;
   border: none;
   padding: 10px 20px;
-  border-radius: 6px;
+  border-radius: calc(var(--app-radius) / 2);
   cursor: pointer;
   font-family: inherit;
   font-weight: bold;
@@ -82,7 +82,7 @@ select, input[type="text"] {
 
 .routine-column, .todo-section {
   border: 2px solid;
-  border-radius: 16px;
+  border-radius: var(--app-radius, 16px);
   overflow: hidden;
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 }
@@ -122,7 +122,6 @@ select, input[type="text"] {
   width: 100%;
 }
 
-/* Modal Engine styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -140,7 +139,7 @@ select, input[type="text"] {
 .modal-content {
   background: white;
   padding: 20px;
-  border-radius: 14px;
+  border-radius: var(--app-radius, 14px);
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
@@ -213,7 +212,7 @@ select, input[type="text"] {
 .inline-box {
   background: #f9f9f9;
   padding: 10px;
-  border-radius: 6px;
+  border-radius: calc(var(--app-radius) / 2);
   border: 1px solid #e1e1e1;
 }
 
@@ -221,7 +220,7 @@ select, input[type="text"] {
   margin-top: 10px;
   background: #fafafa;
   padding: 8px;
-  border-radius: 6px;
+  border-radius: calc(var(--app-radius) / 2);
 }
 
 .mini-task-list h4 {
@@ -256,7 +255,7 @@ select, input[type="text"] {
   font-weight: bold;
   padding: 8px 14px;
   border: none;
-  border-radius: 6px;
+  border-radius: calc(var(--app-radius) / 2);
   cursor: pointer;
 }
 
@@ -276,9 +275,10 @@ select, input[type="text"] {
   cursor: pointer;
   font-family: inherit;
   font-weight: bold;
-  border-radius: 6px;
+  border-radius: calc(var(--app-radius) / 2);
   border: none;
 }
 
 .cancel-btn { background: #e0e0e0; color: #333; }
 .save-btn { background: #4A90E2; color: white; }
+
