@@ -3,9 +3,19 @@ import { useState } from 'react';
 export default function SettingsModal({ alters, setAlters, activeId, setActiveId, close }) {
   const [editingId, setEditingId] = useState(activeId);
   const [localAlters, setLocalAlters] = useState(alters);
+  
+  // Profile Manage State
+  const [showManageProfile, setShowManageProfile] = useState(false);
+  const [editNameValue, setEditNameValue] = useState('');
+  
+  // New Profile State
   const [newAlterName, setNewAlterName] = useState('');
+  
+  // New Task State
+  const allDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const [newTaskText, setNewTaskText] = useState('');
   const [taskPeriod, setTaskPeriod] = useState('morning');
+  const [taskDays, setTaskDays] = useState(allDays); // Default to everyday
 
   const activeEdit = localAlters.find(a => a.id === editingId) || localAlters[0];
 
@@ -26,19 +36,47 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
     setNewAlterName('');
   };
 
-  const handleDeleteAlter = (idToDelete) => {
+  const openManageProfile = () => {
+    setEditNameValue(activeEdit.name);
+    setShowManageProfile(true);
+  };
+
+  const handleSaveProfileName = () => {
+    if(!editNameValue.trim()) return;
+    setLocalAlters(localAlters.map(a => a.id === editingId ? { ...a, name: editNameValue } : a));
+    setShowManageProfile(false);
+  };
+
+  const handleDeleteAlter = () => {
     if (localAlters.length <= 1) return alert("You must keep at least one profile!");
-    const filtered = localAlters.filter(a => a.id !== idToDelete);
+    const filtered = localAlters.filter(a => a.id !== editingId);
     setLocalAlters(filtered);
     setEditingId(filtered[0].id);
+    setShowManageProfile(false);
   };
+
+  const toggleDay = (day) => {
+    if (taskDays.includes(day)) {
+      setTaskDays(taskDays.filter(d => d !== day));
+    } else {
+      setTaskDays([...taskDays, day]);
+    }
+  };
+
+  const setAllDays = () => setTaskDays(allDays);
 
   const handleAddTask = () => {
     if (!newTaskText.trim()) return;
+    if (taskDays.length === 0) return alert("Please select at least one day for the task to repeat.");
+    
     setLocalAlters(localAlters.map(a => a.id !== editingId ? a : {
-      ...a, routines: { ...a.routines, [taskPeriod]: [...a.routines[taskPeriod], { id: 'r_' + Date.now(), text: newTaskText, done: false }] }
+      ...a, routines: { 
+        ...a.routines, 
+        [taskPeriod]: [...a.routines[taskPeriod], { id: 'r_' + Date.now(), text: newTaskText, done: false, days: taskDays }] 
+      }
     }));
     setNewTaskText('');
+    setTaskDays(allDays); // Reset to everyday after adding
   };
 
   const handleDeleteTask = (period, taskId) => {
@@ -64,7 +102,7 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
             <select value={editingId} onChange={(e) => setEditingId(e.target.value)}>
               {localAlters.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
-            <button className="danger-btn" onClick={() => handleDeleteAlter(editingId)}>Delete</button>
+            <button className="action-btn" onClick={openManageProfile} style={{ background: '#f0ad4e' }}>Edit / Delete</button>
           </div>
         </div>
 
@@ -123,14 +161,32 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
 
             <h3>Edit Routine Checklists</h3>
             <div className="settings-group inline-box">
-              <div className="row-layout vertical-mobile">
+              <div className="row-layout vertical-mobile" style={{ marginBottom: '10px' }}>
                 <select value={taskPeriod} onChange={(e) => setTaskPeriod(e.target.value)}>
                   <option value="morning">Morning</option>
                   <option value="afternoon">Afternoon</option>
                   <option value="evening">Evening</option>
                 </select>
                 <input type="text" placeholder="New task..." value={newTaskText} onChange={(e) => setNewTaskText(e.target.value)} />
-                <button className="action-btn" onClick={handleAddTask}>Add</button>
+                <button className="action-btn" onClick={handleAddTask}>Add Task</button>
+              </div>
+              
+              <div className="schedule-box">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Schedule (Repeat on):</label>
+                  <button className="text-btn" onClick={setAllDays}>Select Everyday</button>
+                </div>
+                <div className="day-selector">
+                  {allDays.map(day => (
+                    <button 
+                      key={day} 
+                      className={`day-btn ${taskDays.includes(day) ? 'active' : ''}`} 
+                      onClick={() => toggleDay(day)}
+                    >
+                      {day.charAt(0)}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -139,7 +195,12 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
                 <h4>{period.toUpperCase()}:</h4>
                 {activeEdit.routines[period]?.map(t => (
                   <div key={t.id} className="mini-task-item">
-                    <span>• {t.text}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span>• {t.text}</span>
+                      <span className="task-days-label">
+                        {(!t.days || t.days.length === 7) ? 'Everyday' : t.days.join(', ')}
+                      </span>
+                    </div>
                     <span className="remove-cross" onClick={() => handleDeleteTask(period, t.id)}>✕</span>
                   </div>
                 ))}
@@ -155,6 +216,31 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
           </div>
         </div>
       </div>
+
+      {/* MANAGE PROFILE SUB-MODAL */}
+      {showManageProfile && (
+        <div className="sub-modal-overlay">
+          <div className="sub-modal-content">
+            <h3 style={{ marginBottom: '15px' }}>Edit or Delete Profile</h3>
+            
+            <label style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Edit Name:</label>
+            <input 
+              type="text" 
+              value={editNameValue} 
+              onChange={(e) => setEditNameValue(e.target.value)} 
+              style={{ width: '100%', marginBottom: '20px', marginTop: '5px' }}
+            />
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button className="action-btn" onClick={handleSaveProfileName}>Save New Name</button>
+              <button className="danger-btn" onClick={handleDeleteAlter}>Permanently Delete Profile</button>
+              <button className="cancel-btn" onClick={() => setShowManageProfile(false)}>Cancel / Go Back</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+
