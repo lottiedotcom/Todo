@@ -4,18 +4,18 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
   const [editingId, setEditingId] = useState(activeId);
   const [localAlters, setLocalAlters] = useState(alters);
   
-  // Profile Manage State
   const [showManageProfile, setShowManageProfile] = useState(false);
   const [editNameValue, setEditNameValue] = useState('');
   
-  // New Profile State
   const [newAlterName, setNewAlterName] = useState('');
   
-  // New Task State
   const allDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const [newTaskText, setNewTaskText] = useState('');
   const [taskPeriod, setTaskPeriod] = useState('morning');
-  const [taskDays, setTaskDays] = useState(allDays); // Default to everyday
+  const [taskDays, setTaskDays] = useState(allDays);
+  
+  // New state for editing pre-existing tasks
+  const [editingTaskId, setEditingTaskId] = useState(null);
 
   const activeEdit = localAlters.find(a => a.id === editingId) || localAlters[0];
 
@@ -65,24 +65,50 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
 
   const setAllDays = () => setTaskDays(allDays);
 
-  const handleAddTask = () => {
+  const handleSaveTask = () => {
     if (!newTaskText.trim()) return;
     if (taskDays.length === 0) return alert("Please select at least one day for the task to repeat.");
     
-    setLocalAlters(localAlters.map(a => a.id !== editingId ? a : {
-      ...a, routines: { 
-        ...a.routines, 
-        [taskPeriod]: [...a.routines[taskPeriod], { id: 'r_' + Date.now(), text: newTaskText, done: false, days: taskDays }] 
+    setLocalAlters(localAlters.map(a => {
+      if (a.id !== editingId) return a;
+      const updatedRoutines = { ...a.routines };
+
+      if (editingTaskId) {
+        // Edit existing task
+        updatedRoutines[taskPeriod] = updatedRoutines[taskPeriod].map(t => 
+          t.id === editingTaskId ? { ...t, text: newTaskText, days: taskDays } : t
+        );
+      } else {
+        // Create new task
+        updatedRoutines[taskPeriod] = [...updatedRoutines[taskPeriod], { id: 'r_' + Date.now(), text: newTaskText, done: false, days: taskDays }];
       }
+
+      return { ...a, routines: updatedRoutines };
     }));
+    
     setNewTaskText('');
-    setTaskDays(allDays); // Reset to everyday after adding
+    setTaskDays(allDays);
+    setEditingTaskId(null);
+  };
+
+  const loadTaskForEditing = (period, task) => {
+    setTaskPeriod(period);
+    setNewTaskText(task.text);
+    setTaskDays(task.days || allDays);
+    setEditingTaskId(task.id);
+  };
+
+  const cancelTaskEdit = () => {
+    setNewTaskText('');
+    setTaskDays(allDays);
+    setEditingTaskId(null);
   };
 
   const handleDeleteTask = (period, taskId) => {
     setLocalAlters(localAlters.map(a => a.id !== editingId ? a : {
       ...a, routines: { ...a.routines, [period]: a.routines[period].filter(t => t.id !== taskId) }
     }));
+    if (editingTaskId === taskId) cancelTaskEdit();
   };
 
   const handleSave = () => {
@@ -160,15 +186,24 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
             </div>
 
             <h3>Edit Routine Checklists</h3>
-            <div className="settings-group inline-box">
+            <div className="settings-group inline-box" style={{ background: editingTaskId ? '#FFF0F5' : '#f9f9f9', border: editingTaskId ? '2px dashed #C74B5B' : '1px solid #e1e1e1' }}>
+              <label style={{ color: editingTaskId ? '#C74B5B' : 'inherit' }}>
+                {editingTaskId ? 'Editing Existing Task...' : 'Add New Task:'}
+              </label>
               <div className="row-layout vertical-mobile" style={{ marginBottom: '10px' }}>
                 <select value={taskPeriod} onChange={(e) => setTaskPeriod(e.target.value)}>
                   <option value="morning">Morning</option>
                   <option value="afternoon">Afternoon</option>
                   <option value="evening">Evening</option>
                 </select>
-                <input type="text" placeholder="New task..." value={newTaskText} onChange={(e) => setNewTaskText(e.target.value)} />
-                <button className="action-btn" onClick={handleAddTask}>Add Task</button>
+                <input type="text" placeholder="Task text..." value={newTaskText} onChange={(e) => setNewTaskText(e.target.value)} />
+                
+                <button className="action-btn" onClick={handleSaveTask} style={{ background: editingTaskId ? '#C74B5B' : '#5cb85c' }}>
+                  {editingTaskId ? 'Update' : 'Add'}
+                </button>
+                {editingTaskId && (
+                  <button className="cancel-btn" onClick={cancelTaskEdit}>Cancel</button>
+                )}
               </div>
               
               <div className="schedule-box">
@@ -195,13 +230,16 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
                 <h4>{period.toUpperCase()}:</h4>
                 {activeEdit.routines[period]?.map(t => (
                   <div key={t.id} className="mini-task-item">
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span>• {t.text}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                      <span style={{ fontWeight: editingTaskId === t.id ? 'bold' : 'normal' }}>• {t.text}</span>
                       <span className="task-days-label">
                         {(!t.days || t.days.length === 7) ? 'Everyday' : t.days.join(', ')}
                       </span>
                     </div>
-                    <span className="remove-cross" onClick={() => handleDeleteTask(period, t.id)}>✕</span>
+                    <div style={{ display: 'flex', gap: '15px' }}>
+                      <span className="edit-pencil" onClick={() => loadTaskForEditing(period, t)}>✏️</span>
+                      <span className="remove-cross" onClick={() => handleDeleteTask(period, t.id)}>✕</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -217,7 +255,6 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
         </div>
       </div>
 
-      {/* MANAGE PROFILE SUB-MODAL */}
       {showManageProfile && (
         <div className="sub-modal-overlay">
           <div className="sub-modal-content">
