@@ -8,7 +8,7 @@ const defaultData = [
     theme: { bg: '#FFF0F5', primary: '#C74B5B', columnBg: '#FFFFFF', isImage: false, font: 'monospace', radius: '16px' },
     routines: { morning: [], afternoon: [], evening: [] },
     todos: [],
-    tracking: {} // Format: { 'YYYY-MM-DD': { water: 0, mood: '', notes: '' } }
+    tracking: {} 
   }
 ];
 
@@ -17,12 +17,13 @@ export default function App() {
   const [activeId, setActiveId] = useState('1');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [activeTab, setActiveTab] = useState('home'); // 'home', 'todo', 'track'
+  const [activeTab, setActiveTab] = useState('home'); 
   const [showMondayTrend, setShowMondayTrend] = useState(false);
 
   const todayStr = new Date().toISOString().split('T')[0];
+  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const currentDay = daysOfWeek[new Date().getDay()];
 
-  // Cloud Load
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -42,7 +43,6 @@ export default function App() {
     loadData();
   }, []);
 
-  // Cloud Save
   useEffect(() => {
     if (!isLoaded) return;
     localStorage.setItem('system_routines', JSON.stringify(alters));
@@ -53,11 +53,9 @@ export default function App() {
     }).catch(console.error);
   }, [alters, isLoaded]);
 
-  // Monday 7 AM Pop-up Logic
   useEffect(() => {
     const checkMonday = () => {
       const now = new Date();
-      // If it's Monday (1) and it's 7 AM or later
       if (now.getDay() === 1 && now.getHours() >= 7) {
         const viewed = localStorage.getItem('trendViewed');
         if (viewed !== todayStr) {
@@ -107,10 +105,10 @@ export default function App() {
     setAlters(alters.map(a => {
       if (a.id !== activeId) return a;
       const currentTracking = a.tracking || {};
-      const currentDay = currentTracking[todayStr] || { water: 0, mood: '', notes: '' };
+      const currentDayStats = currentTracking[todayStr] || { water: 0, mood: '', notes: '' };
       return {
         ...a,
-        tracking: { ...currentTracking, [todayStr]: { ...currentDay, [key]: value } }
+        tracking: { ...currentTracking, [todayStr]: { ...currentDayStats, [key]: value } }
       };
     }));
   };
@@ -125,7 +123,7 @@ export default function App() {
       '--app-font': theme.font || 'monospace',
       '--app-radius': theme.radius || '16px',
       minHeight: '100vh',
-      paddingBottom: '80px' // Space for bottom nav
+      paddingBottom: '80px' 
     }}>
       
       <header style={{ borderColor: theme.primary }}>
@@ -138,7 +136,6 @@ export default function App() {
         <h1 className="main-title">DAILY CHART</h1>
       </header>
 
-      {/* TAB 1: HOME (ROUTINES) */}
       {activeTab === 'home' && (
         <div className="tab-content">
           <div className="home-controls">
@@ -150,7 +147,10 @@ export default function App() {
               <div key={period} className="routine-column" style={{ borderColor: theme.primary, backgroundColor: theme.columnBg }}>
                 <h2 style={{ backgroundColor: theme.primary }}>{period.toUpperCase()}</h2>
                 <div className="task-list">
-                  {activeFronter.routines[period]?.map(task => (
+                  {/* Logic filters tasks to only show if they have no days array (old data) OR if their days array includes today */}
+                  {activeFronter.routines[period]
+                    ?.filter(task => !task.days || task.days.length === 0 || task.days.includes(currentDay))
+                    .map(task => (
                     <label key={task.id} className="task-item">
                       <input type="checkbox" checked={task.done} onChange={() => toggleTask(period, task.id)} />
                       <span style={{ textDecoration: task.done ? 'line-through' : 'none' }}>{task.text}</span>
@@ -163,7 +163,6 @@ export default function App() {
         </div>
       )}
 
-      {/* TAB 2: TO-DO */}
       {activeTab === 'todo' && (
         <div className="tab-content">
           <div className="todo-section" style={{ borderColor: theme.primary, backgroundColor: theme.columnBg }}>
@@ -185,7 +184,6 @@ export default function App() {
         </div>
       )}
 
-      {/* TAB 3: TRACKING */}
       {activeTab === 'track' && (
         <div className="tab-content">
           <div className="tracking-section" style={{ borderColor: theme.primary, backgroundColor: theme.columnBg }}>
@@ -225,14 +223,12 @@ export default function App() {
         </div>
       )}
 
-      {/* BOTTOM NAVIGATION */}
       <nav className="bottom-nav" style={{ borderColor: theme.primary }}>
         <button className={activeTab === 'home' ? 'active-tab' : ''} onClick={() => setActiveTab('home')} style={{ color: theme.primary }}>Home</button>
         <button className={activeTab === 'todo' ? 'active-tab' : ''} onClick={() => setActiveTab('todo')} style={{ color: theme.primary }}>To-Do</button>
         <button className={activeTab === 'track' ? 'active-tab' : ''} onClick={() => setActiveTab('track')} style={{ color: theme.primary }}>Track</button>
       </nav>
 
-      {/* MONDAY NOTIFICATION POP-UP */}
       {showMondayTrend && (
         <div className="modal-overlay">
           <div className="trend-modal" style={{ borderColor: theme.primary }}>
@@ -248,3 +244,4 @@ export default function App() {
     </div>
   );
 }
+
