@@ -98,7 +98,7 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
         updatedRoutines[taskPeriod].push({
           id: 'r_' + Date.now(),
           text: newTaskText,
-          done: false,
+          completedDates: [], // Start fresh with the new ledger array
           days: taskDays
         });
       }
@@ -305,4 +305,3 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
     </div>
   );
 }
-
