@@ -19,10 +19,24 @@ export default function App() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState('home'); 
   const [showMondayTrend, setShowMondayTrend] = useState(false);
+  
+  // New Time Travel State
+  const [viewDateOffset, setViewDateOffset] = useState(0);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  // Calculate the active viewing date based on the offset
+  const dateObj = new Date();
+  dateObj.setDate(dateObj.getDate() + viewDateOffset);
+  
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const d = String(dateObj.getDate()).padStart(2, '0');
+  const activeDateStr = `${y}-${m}-${d}`;
+  
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const currentDay = daysOfWeek[new Date().getDay()];
+  const activeDayName = daysOfWeek[dateObj.getDay()];
+  
+  // Real today string for the trend pop-up
+  const realTodayStr = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     const loadData = async () => {
@@ -58,18 +72,20 @@ export default function App() {
       const now = new Date();
       if (now.getDay() === 1 && now.getHours() >= 7) {
         const viewed = localStorage.getItem('trendViewed');
-        if (viewed !== todayStr) {
+        if (viewed !== realTodayStr) {
           setShowMondayTrend(true);
-          localStorage.setItem('trendViewed', todayStr);
+          localStorage.setItem('trendViewed', realTodayStr);
         }
       }
     };
     checkMonday();
-  }, [todayStr]);
+  }, [realTodayStr]);
 
   const activeFronter = alters.find(a => a.id === activeId) || alters[0];
   const theme = activeFronter?.theme || defaultData[0].theme;
-  const todayTracking = activeFronter.tracking?.[todayStr] || { water: 0, mood: '', notes: '' };
+  
+  // Tracking now looks at the activeDateStr you are viewing, not just real "today"
+  const todayTracking = activeFronter.tracking?.[activeDateStr] || { water: 0, mood: '', notes: '' };
 
   const activeTodos = activeFronter.todos?.filter(t => !t.done) || [];
   const archivedTodos = activeFronter.todos?.filter(t => t.done) || [];
@@ -94,6 +110,7 @@ export default function App() {
   };
 
   const clearArchivedTodos = () => {
+    if(!window.confirm("Permanently delete all completed tasks?")) return;
     setAlters(alters.map(a => a.id !== activeId ? a : {
       ...a, todos: a.todos.filter(t => !t.done)
     }));
@@ -114,10 +131,10 @@ export default function App() {
     setAlters(alters.map(a => {
       if (a.id !== activeId) return a;
       const currentTracking = a.tracking || {};
-      const currentDayStats = currentTracking[todayStr] || { water: 0, mood: '', notes: '' };
+      const currentDayStats = currentTracking[activeDateStr] || { water: 0, mood: '', notes: '' };
       return {
         ...a,
-        tracking: { ...currentTracking, [todayStr]: { ...currentDayStats, [key]: value } }
+        tracking: { ...currentTracking, [activeDateStr]: { ...currentDayStats, [key]: value } }
       };
     }));
   };
@@ -142,25 +159,41 @@ export default function App() {
             {alters.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </div>
-        <h1 className="main-title">DAILY CHART</h1>
+        
+        <div className="date-nav">
+          <button className="arrow-btn" onClick={() => setViewDateOffset(prev => prev - 1)} style={{ color: theme.primary }}>◀</button>
+          <div style={{ textAlign: 'center' }}>
+            <h1 className="main-title" style={{ margin: 0 }}>DAILY CHART</h1>
+            <span className="subtitle" style={{ fontSize: '0.85rem', opacity: 0.8 }}>
+              {viewDateOffset === 0 ? `TODAY (${activeDayName})` : `${activeDateStr} (${activeDayName})`}
+            </span>
+          </div>
+          <button className="arrow-btn" onClick={() => setViewDateOffset(prev => prev + 1)} style={{ color: theme.primary }}>▶</button>
+        </div>
       </header>
 
       {activeTab === 'home' && (
         <div className="tab-content">
           <div className="home-controls">
             <button className="settings-btn" onClick={() => setIsSettingsOpen(true)} style={{ backgroundColor: theme.primary }}>Settings</button>
-            <button className="reset-btn" onClick={resetRoutines} style={{ borderColor: theme.primary, color: theme.primary }}>Reset Today's Routine</button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {viewDateOffset !== 0 && (
+                <button className="reset-btn" onClick={() => setViewDateOffset(0)} style={{ borderColor: theme.primary, color: theme.primary }}>Back to Today</button>
+              )}
+              <button className="reset-btn" onClick={resetRoutines} style={{ borderColor: theme.primary, color: theme.primary }}>Reset Checkboxes</button>
+            </div>
           </div>
           <div className="grid-container">
             {['morning', 'afternoon', 'evening'].map(period => {
-              const todaysTasks = activeFronter.routines[period]?.filter(task => !task.days || task.days.length === 0 || task.days.includes(currentDay)) || [];
+              // Now filters tasks based on the day you are currently viewing!
+              const todaysTasks = activeFronter.routines[period]?.filter(task => !task.days || task.days.length === 0 || task.days.includes(activeDayName)) || [];
               
               return (
                 <div key={period} className="routine-column" style={{ borderColor: theme.primary, backgroundColor: theme.columnBg }}>
                   <h2 style={{ backgroundColor: theme.primary }}>{period.toUpperCase()}</h2>
                   <div className="task-list">
                     {todaysTasks.length === 0 && (
-                      <p className="empty-day-msg">No tasks scheduled for today.</p>
+                      <p className="empty-day-msg">No tasks scheduled for {activeDayName}.</p>
                     )}
                     {todaysTasks.map(task => (
                       <label key={task.id} className="task-item">
@@ -217,12 +250,12 @@ export default function App() {
       {activeTab === 'track' && (
         <div className="tab-content">
           <div className="tracking-section" style={{ borderColor: theme.primary, backgroundColor: theme.columnBg }}>
-            <h2 style={{ backgroundColor: theme.primary }}>HEALTH & NOTES</h2>
+            <h2 style={{ backgroundColor: theme.primary }}>HEALTH & NOTES {viewDateOffset !== 0 ? `(${activeDateStr})` : ''}</h2>
             
             <div className="tracking-block">
               <h3>Hydration Tracker (8oz)</h3>
               <div className="water-display">
-                {'💧'.repeat(todayTracking.water) || <span className="empty-water">No water logged yet!</span>}
+                {'💧'.repeat(todayTracking.water) || <span className="empty-water">No water logged for this date.</span>}
               </div>
               <button className="water-btn" onClick={() => updateTracking('water', todayTracking.water + 1)} style={{ backgroundColor: theme.primary }}>
                 + Add 8oz
