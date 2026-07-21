@@ -47,6 +47,26 @@ header {
   font-weight: bold;
 }
 
+/* Date Navigation Styles */
+.date-nav {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.arrow-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px 15px;
+  transition: transform 0.2s;
+}
+
+.arrow-btn:active {
+  transform: scale(0.8);
+}
+
 select, input[type="text"], textarea {
   padding: 8px;
   font-family: inherit;
