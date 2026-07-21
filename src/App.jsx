@@ -152,21 +152,26 @@ export default function App() {
             <button className="reset-btn" onClick={resetRoutines} style={{ borderColor: theme.primary, color: theme.primary }}>Reset Today's Routine</button>
           </div>
           <div className="grid-container">
-            {['morning', 'afternoon', 'evening'].map(period => (
-              <div key={period} className="routine-column" style={{ borderColor: theme.primary, backgroundColor: theme.columnBg }}>
-                <h2 style={{ backgroundColor: theme.primary }}>{period.toUpperCase()}</h2>
-                <div className="task-list">
-                  {activeFronter.routines[period]
-                    ?.filter(task => !task.days || task.days.length === 0 || task.days.includes(currentDay))
-                    .map(task => (
-                    <label key={task.id} className="task-item">
-                      <input type="checkbox" checked={task.done} onChange={() => toggleTask(period, task.id)} />
-                      <span style={{ textDecoration: task.done ? 'line-through' : 'none' }}>{task.text}</span>
-                    </label>
-                  ))}
+            {['morning', 'afternoon', 'evening'].map(period => {
+              const todaysTasks = activeFronter.routines[period]?.filter(task => !task.days || task.days.length === 0 || task.days.includes(currentDay)) || [];
+              
+              return (
+                <div key={period} className="routine-column" style={{ borderColor: theme.primary, backgroundColor: theme.columnBg }}>
+                  <h2 style={{ backgroundColor: theme.primary }}>{period.toUpperCase()}</h2>
+                  <div className="task-list">
+                    {todaysTasks.length === 0 && (
+                      <p className="empty-day-msg">No tasks scheduled for today.</p>
+                    )}
+                    {todaysTasks.map(task => (
+                      <label key={task.id} className="task-item">
+                        <input type="checkbox" checked={task.done} onChange={() => toggleTask(period, task.id)} />
+                        <span style={{ textDecoration: task.done ? 'line-through' : 'none' }}>{task.text}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -189,7 +194,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Pink Archive Box */}
             {archivedTodos.length > 0 && (
               <div className="archive-box" style={{ borderColor: theme.primary }}>
                 <div className="archive-header">
