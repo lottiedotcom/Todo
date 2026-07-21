@@ -71,7 +71,6 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
     setLocalAlters(localAlters.map(a => {
       if (a.id !== editingId) return a;
       
-      // Deep copy to safely move tasks between periods if the dropdown was changed
       const updatedRoutines = {
         morning: [...a.routines.morning],
         afternoon: [...a.routines.afternoon],
@@ -80,7 +79,6 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
 
       if (editingTaskId) {
         let foundTask = null;
-        // Search all columns and remove it from the old one
         ['morning', 'afternoon', 'evening'].forEach(p => {
           const index = updatedRoutines[p].findIndex(t => t.id === editingTaskId);
           if (index > -1) {
@@ -89,7 +87,6 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
           }
         });
 
-        // Push it into whatever the new dropdown is set to
         if (foundTask) {
           updatedRoutines[taskPeriod].push({
             ...foundTask,
@@ -135,7 +132,11 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
   };
 
   const handleSave = () => {
-    // THIS is the master save button that pushes edits to the main app view
+    if (newTaskText.trim() !== '') {
+      alert("Hold up! You have an unsaved task in the text box. Please click the green 'Add' or 'Update' button first to confirm it.");
+      return;
+    }
+    
     setAlters(localAlters);
     if (!localAlters.some(a => a.id === activeId)) setActiveId(localAlters[0].id);
     close();
@@ -274,7 +275,6 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
         <div className="modal-actions" style={{ justifyContent: 'flex-end' }}>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button className="cancel-btn" onClick={close}>Cancel</button>
-            {/* You must click this to send edits to the Home screen! */}
             <button className="save-btn" onClick={handleSave}>Save Config</button>
           </div>
         </div>
