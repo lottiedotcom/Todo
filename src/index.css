@@ -47,7 +47,7 @@ header {
   font-weight: bold;
 }
 
-select, input[type="text"] {
+select, input[type="text"], textarea {
   padding: 8px;
   font-family: inherit;
   font-weight: bold;
@@ -233,8 +233,15 @@ select, input[type="text"] {
   justify-content: space-between;
   align-items: center;
   font-size: 0.85rem;
-  padding: 4px 0;
+  padding: 6px 0;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.task-days-label {
+  font-size: 0.7rem;
+  color: #777;
+  font-style: italic;
+  margin-top: 2px;
 }
 
 .remove-cross {
@@ -242,12 +249,7 @@ select, input[type="text"] {
   cursor: pointer;
   padding: 0 4px;
   font-weight: bold;
-}
-
-.empty-text {
-  font-size: 0.8rem;
-  color: #999;
-  font-style: italic;
+  font-size: 1rem;
 }
 
 .action-btn, .danger-btn {
@@ -282,7 +284,77 @@ select, input[type="text"] {
 .cancel-btn { background: #e0e0e0; color: #333; }
 .save-btn { background: #4A90E2; color: white; }
 
-/* New Home Controls & Reset Button */
+/* Sub-modal Styles */
+.sub-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.sub-modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: calc(var(--app-radius) / 2);
+  width: 90%;
+  max-width: 320px;
+  text-align: center;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+/* Schedule / Day Selector Styles */
+.schedule-box {
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: calc(var(--app-radius) / 2);
+  margin-top: 5px;
+}
+
+.text-btn {
+  background: none;
+  border: none;
+  color: #4A90E2;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: inherit;
+}
+
+.day-selector {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.day-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #e0e0e0;
+  background: #fafafa;
+  color: #555;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: inherit;
+  font-size: 0.8rem;
+  transition: 0.2s;
+}
+
+.day-btn.active {
+  background: #333;
+  color: #fff;
+  border-color: #333;
+}
+
+/* Home Controls & Reset Button */
 .home-controls {
   display: flex;
   justify-content: space-between;
