@@ -71,6 +71,9 @@ export default function App() {
   const theme = activeFronter?.theme || defaultData[0].theme;
   const todayTracking = activeFronter.tracking?.[todayStr] || { water: 0, mood: '', notes: '' };
 
+  const activeTodos = activeFronter.todos?.filter(t => !t.done) || [];
+  const archivedTodos = activeFronter.todos?.filter(t => t.done) || [];
+
   const toggleTask = (period, taskId) => {
     setAlters(alters.map(a => a.id !== activeId ? a : { 
       ...a, routines: { ...a.routines, [period]: a.routines[period].map(t => t.id === taskId ? { ...t, done: !t.done } : t) }
@@ -87,6 +90,12 @@ export default function App() {
     if (!text.trim()) return;
     setAlters(alters.map(a => a.id !== activeId ? a : {
       ...a, todos: [...a.todos, { id: 't_' + Date.now(), text, done: false }]
+    }));
+  };
+
+  const clearArchivedTodos = () => {
+    setAlters(alters.map(a => a.id !== activeId ? a : {
+      ...a, todos: a.todos.filter(t => !t.done)
     }));
   };
 
@@ -147,7 +156,6 @@ export default function App() {
               <div key={period} className="routine-column" style={{ borderColor: theme.primary, backgroundColor: theme.columnBg }}>
                 <h2 style={{ backgroundColor: theme.primary }}>{period.toUpperCase()}</h2>
                 <div className="task-list">
-                  {/* Logic filters tasks to only show if they have no days array (old data) OR if their days array includes today */}
                   {activeFronter.routines[period]
                     ?.filter(task => !task.days || task.days.length === 0 || task.days.includes(currentDay))
                     .map(task => (
@@ -168,10 +176,10 @@ export default function App() {
           <div className="todo-section" style={{ borderColor: theme.primary, backgroundColor: theme.columnBg }}>
             <h2 style={{ backgroundColor: theme.primary }}>To Do:</h2>
             <div className="task-list">
-              {activeFronter.todos?.map(task => (
+              {activeTodos.map(task => (
                  <label key={task.id} className="task-item">
                    <input type="checkbox" checked={task.done} onChange={() => toggleTodo(task.id)} />
-                   <span style={{ textDecoration: task.done ? 'line-through' : 'none' }}>{task.text}</span>
+                   <span>{task.text}</span>
                  </label>
               ))}
               <div className="add-todo-row">
@@ -180,6 +188,24 @@ export default function App() {
                   }} />
               </div>
             </div>
+
+            {/* Pink Archive Box */}
+            {archivedTodos.length > 0 && (
+              <div className="archive-box" style={{ borderColor: theme.primary }}>
+                <div className="archive-header">
+                  <h3 style={{ margin: 0, color: '#C74B5B' }}>Completed Archive</h3>
+                  <button className="clear-archive-btn" onClick={clearArchivedTodos}>Clear All</button>
+                </div>
+                <div className="task-list" style={{ padding: '0', marginTop: '10px' }}>
+                  {archivedTodos.map(task => (
+                     <label key={task.id} className="task-item archive-item">
+                       <input type="checkbox" checked={task.done} onChange={() => toggleTodo(task.id)} />
+                       <span style={{ textDecoration: 'line-through' }}>{task.text}</span>
+                     </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
