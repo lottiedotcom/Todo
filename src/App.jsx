@@ -12,6 +12,14 @@ const defaultData = [
   }
 ];
 
+// Helper to reliably get local YYYY-MM-DD instead of UTC
+const getLocalDateStr = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 export default function App() {
   const [alters, setAlters] = useState(defaultData);
   const [activeId, setActiveId] = useState('1');
@@ -20,23 +28,18 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home'); 
   const [showMondayTrend, setShowMondayTrend] = useState(false);
   
-  // New Time Travel State
   const [viewDateOffset, setViewDateOffset] = useState(0);
 
-  // Calculate the active viewing date based on the offset
+  // Time Engine 
+  const realTodayObj = new Date();
+  const realTodayStr = getLocalDateStr(realTodayObj);
+
   const dateObj = new Date();
   dateObj.setDate(dateObj.getDate() + viewDateOffset);
-  
-  const y = dateObj.getFullYear();
-  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const d = String(dateObj.getDate()).padStart(2, '0');
-  const activeDateStr = `${y}-${m}-${d}`;
+  const activeDateStr = getLocalDateStr(dateObj);
   
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const activeDayName = daysOfWeek[dateObj.getDay()];
-  
-  // Real today string for the trend pop-up
-  const realTodayStr = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     const loadData = async () => {
@@ -83,20 +86,43 @@ export default function App() {
 
   const activeFronter = alters.find(a => a.id === activeId) || alters[0];
   const theme = activeFronter?.theme || defaultData[0].theme;
-  
-  // Tracking now looks at the activeDateStr you are viewing, not just real "today"
   const todayTracking = activeFronter.tracking?.[activeDateStr] || { water: 0, mood: '', notes: '' };
 
   const activeTodos = activeFronter.todos?.filter(t => !t.done) || [];
   const archivedTodos = activeFronter.todos?.filter(t => t.done) || [];
 
   const toggleTask = (period, taskId) => {
-    setAlters(alters.map(a => a.id !== activeId ? a : { 
-      ...a, routines: { ...a.routines, [period]: a.routines[period].map(t => t.id === taskId ? { ...t, done: !t.done } : t) }
+    setAlters(alters.map(a => {
+      if (a.id !== activeId) return a;
+      
+      const updatedPeriod = a.routines[period].map(t => {
+        if (t.id !== taskId) return t;
+        
+        // Auto-migrate old tasks to the new date-ledger format
+        let currentCompleted = t.completedDates || [];
+        if (t.done && !currentCompleted.includes(realTodayStr)) {
+          currentCompleted = [...currentCompleted, realTodayStr];
+        }
+
+        const isDoneForActiveDate = currentCompleted.includes(activeDateStr);
+        let newCompletedDates;
+        
+        if (isDoneForActiveDate) {
+          newCompletedDates = currentCompleted.filter(d => d !== activeDateStr);
+        } else {
+          newCompletedDates = [...currentCompleted, activeDateStr];
+        }
+        
+        // Return task with the specific date appended, and clear the old global 'done' toggle
+        return { ...t, completedDates: newCompletedDates, done: false };
+      });
+      
+      return { ...a, routines: { ...a.routines, [period]: updatedPeriod } };
     }));
   };
 
   const toggleTodo = (taskId) => {
+    // To-Do list stays global (one-off tasks)
     setAlters(alters.map(a => a.id !== activeId ? a : {
       ...a, todos: a.todos.map(t => t.id === taskId ? { ...t, done: !t.done } : t)
     }));
@@ -117,13 +143,22 @@ export default function App() {
   };
 
   const resetRoutines = () => {
-    if(!window.confirm("Reset all daily routines?")) return;
-    setAlters(alters.map(a => a.id !== activeId ? a : {
-      ...a, routines: {
-        morning: a.routines.morning.map(t => ({...t, done: false})),
-        afternoon: a.routines.afternoon.map(t => ({...t, done: false})),
-        evening: a.routines.evening.map(t => ({...t, done: false}))
-      }
+    if(!window.confirm(`Reset all routine checkmarks for ${activeDateStr}?`)) return;
+    setAlters(alters.map(a => {
+      if (a.id !== activeId) return a;
+      
+      const clearPeriod = (periodArray) => periodArray.map(t => ({
+        ...t,
+        completedDates: (t.completedDates || []).filter(d => d !== activeDateStr)
+      }));
+
+      return {
+        ...a, routines: {
+          morning: clearPeriod(a.routines.morning),
+          afternoon: clearPeriod(a.routines.afternoon),
+          evening: clearPeriod(a.routines.evening)
+        }
+      };
     }));
   };
 
@@ -180,12 +215,11 @@ export default function App() {
               {viewDateOffset !== 0 && (
                 <button className="reset-btn" onClick={() => setViewDateOffset(0)} style={{ borderColor: theme.primary, color: theme.primary }}>Back to Today</button>
               )}
-              <button className="reset-btn" onClick={resetRoutines} style={{ borderColor: theme.primary, color: theme.primary }}>Reset Checkboxes</button>
+              <button className="reset-btn" onClick={resetRoutines} style={{ borderColor: theme.primary, color: theme.primary }}>Clear Checks</button>
             </div>
           </div>
           <div className="grid-container">
             {['morning', 'afternoon', 'evening'].map(period => {
-              // Now filters tasks based on the day you are currently viewing!
               const todaysTasks = activeFronter.routines[period]?.filter(task => !task.days || task.days.length === 0 || task.days.includes(activeDayName)) || [];
               
               return (
@@ -195,12 +229,17 @@ export default function App() {
                     {todaysTasks.length === 0 && (
                       <p className="empty-day-msg">No tasks scheduled for {activeDayName}.</p>
                     )}
-                    {todaysTasks.map(task => (
-                      <label key={task.id} className="task-item">
-                        <input type="checkbox" checked={task.done} onChange={() => toggleTask(period, task.id)} />
-                        <span style={{ textDecoration: task.done ? 'line-through' : 'none' }}>{task.text}</span>
-                      </label>
-                    ))}
+                    {todaysTasks.map(task => {
+                      // Look at the new ledger, or fallback to the old format for backwards compatibility
+                      const isDone = task.completedDates ? task.completedDates.includes(activeDateStr) : (activeDateStr === realTodayStr && !!task.done);
+                      
+                      return (
+                        <label key={task.id} className="task-item">
+                          <input type="checkbox" checked={isDone} onChange={() => toggleTask(period, task.id)} />
+                          <span style={{ textDecoration: isDone ? 'line-through' : 'none' }}>{task.text}</span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               );
