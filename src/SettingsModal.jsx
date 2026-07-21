@@ -14,7 +14,6 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
   const [taskPeriod, setTaskPeriod] = useState('morning');
   const [taskDays, setTaskDays] = useState(allDays);
   
-  // New state for editing pre-existing tasks
   const [editingTaskId, setEditingTaskId] = useState(null);
 
   const activeEdit = localAlters.find(a => a.id === editingId) || localAlters[0];
@@ -71,16 +70,40 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
     
     setLocalAlters(localAlters.map(a => {
       if (a.id !== editingId) return a;
-      const updatedRoutines = { ...a.routines };
+      
+      // Deep copy to safely move tasks between periods if the dropdown was changed
+      const updatedRoutines = {
+        morning: [...a.routines.morning],
+        afternoon: [...a.routines.afternoon],
+        evening: [...a.routines.evening]
+      };
 
       if (editingTaskId) {
-        // Edit existing task
-        updatedRoutines[taskPeriod] = updatedRoutines[taskPeriod].map(t => 
-          t.id === editingTaskId ? { ...t, text: newTaskText, days: taskDays } : t
-        );
+        let foundTask = null;
+        // Search all columns and remove it from the old one
+        ['morning', 'afternoon', 'evening'].forEach(p => {
+          const index = updatedRoutines[p].findIndex(t => t.id === editingTaskId);
+          if (index > -1) {
+            foundTask = updatedRoutines[p][index];
+            updatedRoutines[p].splice(index, 1);
+          }
+        });
+
+        // Push it into whatever the new dropdown is set to
+        if (foundTask) {
+          updatedRoutines[taskPeriod].push({
+            ...foundTask,
+            text: newTaskText,
+            days: taskDays
+          });
+        }
       } else {
-        // Create new task
-        updatedRoutines[taskPeriod] = [...updatedRoutines[taskPeriod], { id: 'r_' + Date.now(), text: newTaskText, done: false, days: taskDays }];
+        updatedRoutines[taskPeriod].push({
+          id: 'r_' + Date.now(),
+          text: newTaskText,
+          done: false,
+          days: taskDays
+        });
       }
 
       return { ...a, routines: updatedRoutines };
@@ -112,6 +135,7 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
   };
 
   const handleSave = () => {
+    // THIS is the master save button that pushes edits to the main app view
     setAlters(localAlters);
     if (!localAlters.some(a => a.id === activeId)) setActiveId(localAlters[0].id);
     close();
@@ -250,6 +274,7 @@ export default function SettingsModal({ alters, setAlters, activeId, setActiveId
         <div className="modal-actions" style={{ justifyContent: 'flex-end' }}>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button className="cancel-btn" onClick={close}>Cancel</button>
+            {/* You must click this to send edits to the Home screen! */}
             <button className="save-btn" onClick={handleSave}>Save Config</button>
           </div>
         </div>
